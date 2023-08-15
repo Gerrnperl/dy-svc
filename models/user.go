@@ -11,12 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-type User struct {
-	gorm.Model
-	Id              int64  `json:"id,omitempty" gorm:"primarykey"`
+type UserProfile struct {
+	Id              int64  `json:"id,omitempty"`
 	Name            string `json:"name,omitempty"`
-	Password        string `json:"password,omitempty"`
-	Salt            string `json:"salt,omitempty"`
 	FollowCount     int64  `json:"follow_count,omitempty"`
 	FollowerCount   int64  `json:"follower_count,omitempty"`
 	Avatar          string `json:"avatar,omitempty"`
@@ -25,6 +22,24 @@ type User struct {
 	WorkCount       int64  `json:"work_count,omitempty"`
 	FavoriteCount   int64  `json:"favorite_count,omitempty"`
 	Signature       string `json:"signature,omitempty"`
+}
+
+type User struct {
+	gorm.Model
+
+	Id              int64  `json:"id,omitempty" gorm:"primarykey"`
+	Name            string `json:"name,omitempty"`
+	FollowCount     int64  `json:"follow_count,omitempty"`
+	FollowerCount   int64  `json:"follower_count,omitempty"`
+	Avatar          string `json:"avatar,omitempty"`
+	BackgroundImage string `json:"background_image,omitempty"`
+	TotalFavorited  int64  `json:"total_favorited,omitempty"`
+	WorkCount       int64  `json:"work_count,omitempty"`
+	FavoriteCount   int64  `json:"favorite_count,omitempty"`
+	Signature       string `json:"signature,omitempty"`
+
+	Password string `json:"password,omitempty"`
+	Salt     string `json:"salt,omitempty"`
 }
 
 func (u *User) TableName() string {
@@ -134,16 +149,16 @@ func GetUserById(id int64) (*User, error) {
 //	@param password string 密码
 //	@return *User
 //	@return error
-func Authenticate(name, password string) (*User, error) {
+func Authenticate(name, password string) (id int64, err error) {
 	user, err := GetUserByName(name)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 	temp := utils.Hash(password + user.Salt)
 	if user.Password != temp {
-		return nil, ErrPasswordIncorrect{}
+		return -1, ErrPasswordIncorrect{}
 	}
-	return user, nil
+	return user.Id, nil
 }
 
 // GenerateToken 生成JWT Token
@@ -195,20 +210,16 @@ func verifyToken(token string) (*jwt.StandardClaims, error) {
 // AuthenticateToken 验证JWT Token
 //
 //	@param token
-//	@return *User
+//	@return id
 //	@return error
-func AuthenticateToken(token string) (*User, error) {
+func AuthenticateToken(token string) (id int64, err error) {
 	claims, err := verifyToken(token)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
-	id, err := strconv.ParseInt(claims.Id, 10, 64)
+	uid, err := strconv.ParseInt(claims.Id, 10, 64)
 	if err != nil {
-		return nil, ErrInvalidToken{}
+		return -1, ErrInvalidToken{}
 	}
-	user, err := GetUserById(id)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+	return uid, nil
 }

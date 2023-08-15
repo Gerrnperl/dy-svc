@@ -55,8 +55,6 @@ func TestVerifyTokenExpired(t *testing.T) {
 
 func TestAuthenticateToken(t *testing.T) {
 
-	mock.ExpectQuery("SELECT * FROM `user` WHERE id = ? AND `user`.`deleted_at` IS NULL ORDER BY `user`.`id` LIMIT 1").WithArgs(1).WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "test"))
-
 	// 生成虚假的 JWT Token
 	token, err := GenerateToken(&User{
 		Id:   1,
@@ -67,16 +65,13 @@ func TestAuthenticateToken(t *testing.T) {
 	}
 
 	// 调用 AuthenticateToken 函数并检查其返回值是否为预期的虚假用户对象
-	user, err := AuthenticateToken(token)
+	id, err := AuthenticateToken(token)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if user.Id != 1 {
+	if id != 1 {
 		t.Error("id not equal")
-	}
-	if user.Name != "test" {
-		t.Error("name not equal")
 	}
 }
 
@@ -269,13 +264,13 @@ func TestAuthenticate(t *testing.T) {
 	)
 
 	// 调用 Authenticate 函数并检查其返回值是否为预期的虚假用户对象
-	user, err := Authenticate("test", "testpwd")
+	id, err := Authenticate("test", "testpwd")
 	if err != nil {
 		t.Error(err)
 	}
 
-	if !reflect.DeepEqual(mockUser, user) {
-		t.Error("user not equal")
+	if id != mockUser.Id {
+		t.Error("user id not equal")
 	}
 }
 
