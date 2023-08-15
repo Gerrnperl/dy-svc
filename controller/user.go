@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"main/models"
+	"main/service"
 	"net/http"
 	"strconv"
 
@@ -27,7 +28,7 @@ func UserRegister(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	user, err := models.AddUser(&models.User{
+	user, err := models.UserDao().Add(&models.User{
 		Name:     username,
 		Password: password,
 	})
@@ -42,7 +43,7 @@ func UserRegister(c *gin.Context) {
 		return
 	}
 
-	token, err := models.GenerateToken(user)
+	token, err := service.GenerateToken(user)
 
 	if err != nil {
 		c.JSON(200, UserCredentialsResponse{
@@ -71,7 +72,7 @@ func UserLogin(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	id, err := models.Authenticate(username, password)
+	id, err := service.Authenticate(username, password)
 
 	if err != nil {
 		c.JSON(200, UserCredentialsResponse{
@@ -83,7 +84,7 @@ func UserLogin(c *gin.Context) {
 		return
 	}
 
-	token, err := models.GenerateToken(&models.User{
+	token, err := service.GenerateToken(&models.User{
 		Id:   id,
 		Name: username,
 	})
@@ -138,7 +139,7 @@ func UserProfile(c *gin.Context) {
 		}
 	}
 
-	user, err := models.GetUserById(int64(id))
+	user, err := models.UserDao().GetById(int64(id))
 
 	if err != nil {
 		c.JSON(200, UserProfilesResponse{

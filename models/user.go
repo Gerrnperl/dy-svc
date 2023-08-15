@@ -1,13 +1,10 @@
 package models
 
 import (
-	"main/config"
 	"main/utils"
 	"strconv"
-	"strings"
-	"time"
+	"sync"
 
-	"github.com/dgrijalva/jwt-go"
 	"gorm.io/gorm"
 )
 
@@ -46,33 +43,39 @@ func (u *User) TableName() string {
 	return "user"
 }
 
-// ErrPasswordIncorrect 密码错误
-type ErrPasswordIncorrect struct{}
+var (
+	_userDaoInstance *UserDaoStruct
+	_userDaoOnce     sync.Once
+)
 
-func (e ErrPasswordIncorrect) Error() string {
-	return "password incorrect"
-}
+type UserDaoStruct struct{}
 
-// ErrInvalidToken 无效的token
-type ErrInvalidToken struct{}
-
-func (e ErrInvalidToken) Error() string {
-	return "invalid token"
-}
-
-// ErrTokenExpired token过期
-type ErrTokenExpired struct{}
-
-func (e ErrTokenExpired) Error() string {
-	return "token expired"
-}
-
-// AddUser 添加用户
+// UserDao returns a singleton instance of userDaoStruct.
 //
-//	@param user *User 用户, 必填字段: Name, Password
+// It uses sync.Once to ensure that only one instance of userDaoStruct is created.
+//
+// The returned instance can be used to perform CRUD operations on the user data.
+func UserDao() *UserDaoStruct {
+	_userDaoOnce.Do(func() {
+		_userDaoInstance = &UserDaoStruct{}
+	})
+	return _userDaoInstance
+}
+
+// Add 添加用户
+//
+// Add adds a new user to the database. It takes a pointer to a User struct as input and returns a pointer to the newly created User struct and an error (if any).
+//
+// If the required fields (name and password) are missing, it returns an ErrMissingRequiredField error.
+//
+// If the user with the same name already exists in the database, it returns an ErrAlreadyExists error.
+//
+// It hashes the password and generates a salt before storing it in the database.
+//
+//	@param user *User
 //	@return *User
 //	@return error
-func AddUser(user *User) (*User, error) {
+func (dao *UserDaoStruct) Add(user *User) (*User, error) {
 	// 判断必填字段是否为空
 	if user.Name == "" {
 		return nil, ErrMissingRequiredField{"name"}
@@ -102,12 +105,16 @@ func AddUser(user *User) (*User, error) {
 	return &newUser, nil
 }
 
-// GetUserByName 根据用户名获取用户
+// GetByName 根据用户名获取用户
+//
+// GetByName retrieves a user from the database by name. It takes a string representing the user's name as input and returns a pointer to the User struct and an error (if any).
+//
+// If the user with the specified name is not found in the database, it returns an ErrNotFound error.
 //
 //	@param name
 //	@return *User
 //	@return error
-func GetUserByName(name string) (*User, error) {
+func (dao *UserDaoStruct) GetByName(name string) (*User, error) {
 	var user User
 	result := DB().Where("name = ?", name).First(&user)
 	if result.Error != nil {
@@ -122,12 +129,12 @@ func GetUserByName(name string) (*User, error) {
 	return &user, nil
 }
 
-// GetUserById 根据用户ID获取用户
+// GetById 根据用户ID获取用户
 //
 //	@param id
 //	@return *User
 //	@return error
-func GetUserById(id int64) (*User, error) {
+func (dao *UserDaoStruct) GetById(id int64) (*User, error) {
 	var user User
 	result := DB().Where("id = ?", id).First(&user)
 	if result.Error != nil {
@@ -141,85 +148,4 @@ func GetUserById(id int64) (*User, error) {
 		return nil, result.Error
 	}
 	return &user, nil
-}
-
-// Authenticate 验证用户
-//
-//	@param name string 用户名
-//	@param password string 密码
-//	@return *User
-//	@return error
-func Authenticate(name, password string) (id int64, err error) {
-	user, err := GetUserByName(name)
-	if err != nil {
-		return -1, err
-	}
-	temp := utils.Hash(password + user.Salt)
-	if user.Password != temp {
-		return -1, ErrPasswordIncorrect{}
-	}
-	return user.Id, nil
-}
-
-// GenerateToken 生成JWT Token
-//
-//	@param user *User
-//	@return string
-//	@return error
-func GenerateToken(user *User) (string, error) {
-	currentTime := time.Now().Unix()
-	expireTime := currentTime + config.ExpireTime
-	claims := jwt.StandardClaims{
-		Audience:  user.Name,
-		ExpiresAt: expireTime,
-		Id:        strconv.FormatInt(user.Id, 10),
-		IssuedAt:  currentTime,
-		Issuer:    "dy-svc",
-		NotBefore: currentTime,
-		Subject:   "login",
-	}
-
-	jwtSecret := []byte(config.JWTSecret)
-	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token, err := tokenClaims.SignedString(jwtSecret)
-	if err != nil {
-		return "", err
-	}
-	return token, nil
-}
-
-func verifyToken(token string) (*jwt.StandardClaims, error) {
-	jwtSecret := []byte(config.JWTSecret)
-	tokenClaims, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
-	})
-	if err != nil {
-		// if err is start with "token is expired by", return ErrTokenExpired
-		if strings.HasPrefix(err.Error(), "token is expired by") {
-			return nil, ErrTokenExpired{}
-		}
-		return nil, ErrInvalidToken{}
-	}
-	claims, ok := tokenClaims.Claims.(*jwt.StandardClaims)
-	if !ok || !tokenClaims.Valid {
-		return nil, ErrInvalidToken{}
-	}
-	return claims, nil
-}
-
-// AuthenticateToken 验证JWT Token
-//
-//	@param token
-//	@return id
-//	@return error
-func AuthenticateToken(token string) (id int64, err error) {
-	claims, err := verifyToken(token)
-	if err != nil {
-		return -1, err
-	}
-	uid, err := strconv.ParseInt(claims.Id, 10, 64)
-	if err != nil {
-		return -1, ErrInvalidToken{}
-	}
-	return uid, nil
 }

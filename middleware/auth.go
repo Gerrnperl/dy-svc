@@ -2,14 +2,14 @@ package middleware
 
 import (
 	"main/controller"
-	"main/models"
+	"main/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func auth(c *gin.Context, token string) (int64, error) {
-	id, err := models.AuthenticateToken(token)
+	id, err := service.AuthenticateToken(token)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, controller.Response{
 			StatusCode: 1,
