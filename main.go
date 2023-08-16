@@ -4,7 +4,6 @@ import (
 	"log"
 	"main/config"
 	"main/models"
-	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,10 +15,7 @@ func main() {
 
 	r := gin.Default()
 
-	addr := os.Getenv("ADDR")
-	if len(addr) == 0 {
-		addr = ":8080"
-	}
+	addr := config.Address + ":" + config.Port
 
 	initRouter(r)
 

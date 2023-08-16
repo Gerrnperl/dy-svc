@@ -4,7 +4,6 @@ import (
 	"main/models"
 	"main/service"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -81,34 +80,19 @@ func UserLogin(c *gin.Context) {
 // 获取登录用户的 id、昵称，如果实现社交部分的功能，还会返回关注数和粉丝数。
 func UserProfile(c *gin.Context) {
 
-	userId := c.Query("userId")
+	userId, err := GetUserID(c, c.Query("userId"))
 
-	var id int64
-
-	if userId == "" {
-		userId, existed := c.Get("user_id")
-		var ok bool
-		id, ok = userId.(int64)
-		if !ok || !existed {
-			c.JSON(http.StatusInternalServerError, Response{
+	if err != nil {
+		c.JSON(200, UserProfilesResponse{
+			Response: Response{
 				StatusCode: 1,
-				StatusMsg:  "user id is not given",
-			})
-			return
-		}
-	} else {
-		var err error
-		id, err = strconv.ParseInt(userId, 10, 64)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, Response{
-				StatusCode: 1,
-				StatusMsg:  "user id is not valid",
-			})
-			return
-		}
+				StatusMsg:  err.Error(),
+			},
+		})
+		return
 	}
 
-	user, err := service.UserProfile(id)
+	user, err := service.UserProfile(userId)
 
 	if err != nil {
 		c.JSON(200, UserProfilesResponse{

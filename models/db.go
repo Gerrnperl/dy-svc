@@ -58,6 +58,7 @@ func Init() error {
 	_DB = db
 
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Video{})
 
 	return nil
 }

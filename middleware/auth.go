@@ -48,7 +48,7 @@ func AuthHeader() gin.HandlerFunc {
 
 func AuthBody() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.Request.PostFormValue("token")
+		token := c.PostForm("token")
 		_, err := auth(c, token)
 		if err != nil {
 			return

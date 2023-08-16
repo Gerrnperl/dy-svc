@@ -11,6 +11,7 @@ import (
 var (
 	DSN        string
 	Address    string
+	Port       string
 	ExpireTime int64 = 60 * 60 * 24 // 1 day
 	JWTSecret  string
 )
@@ -55,7 +56,8 @@ func Init() {
 	DBConfig := readEnvWithDefault("DB_CONFIG", "charset=utf8mb4&parseTime=True&loc=Local")
 	DSN = DBUser + ":" + DBPwd + "@tcp(" + DBHost + ":" + DBPort + ")/" + DBName + "?" + DBConfig
 
-	Address = readEnvWithDefault("ADDR", ":8080")
+	Address = readEnvWithDefault("ADDR", "")
+	Port = readEnvWithDefault("PORT", "8080")
 
 	expireStr := readEnvWithDefault("EXPIRE_TIME", "86400")
 	expire, err := strconv.Atoi(expireStr)
