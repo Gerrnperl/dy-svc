@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"main/models"
 	"main/service"
 	"net/http"
@@ -28,22 +27,7 @@ func UserRegister(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	user, err := models.UserDao().Add(&models.User{
-		Name:     username,
-		Password: password,
-	})
-
-	if err != nil {
-		c.JSON(200, UserCredentialsResponse{
-			Response: Response{
-				StatusCode: 1,
-				StatusMsg:  err.Error(),
-			},
-		})
-		return
-	}
-
-	token, err := service.GenerateToken(user)
+	id, token, err := service.UserRegister(username, password)
 
 	if err != nil {
 		c.JSON(200, UserCredentialsResponse{
@@ -60,7 +44,7 @@ func UserRegister(c *gin.Context) {
 			StatusCode: 0,
 			StatusMsg:  "success",
 		},
-		UserId: user.Id,
+		UserId: id,
 		Token:  token,
 	})
 }
@@ -72,27 +56,12 @@ func UserLogin(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
 
-	id, err := service.Authenticate(username, password)
-
-	if err != nil {
-		c.JSON(200, UserCredentialsResponse{
-			Response: Response{
-				StatusCode: 1,
-				StatusMsg:  err.Error(),
-			},
-		})
-		return
-	}
-
-	token, err := service.GenerateToken(&models.User{
-		Id:   id,
-		Name: username,
-	})
+	id, token, err := service.UserLogin(username, password)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, Response{
 			StatusCode: 1,
-			StatusMsg:  fmt.Errorf("failed to generate token: %v", err).Error(),
+			StatusMsg:  err.Error(),
 		})
 		return
 	}
@@ -139,7 +108,7 @@ func UserProfile(c *gin.Context) {
 		}
 	}
 
-	user, err := models.UserDao().GetById(int64(id))
+	user, err := service.UserProfile(id)
 
 	if err != nil {
 		c.JSON(200, UserProfilesResponse{
@@ -156,17 +125,6 @@ func UserProfile(c *gin.Context) {
 			StatusCode: 0,
 			StatusMsg:  "success",
 		},
-		User: &models.UserProfile{
-			Id:              user.Id,
-			Name:            user.Name,
-			FollowCount:     user.FollowCount,
-			FollowerCount:   user.FollowerCount,
-			Avatar:          user.Avatar,
-			BackgroundImage: user.BackgroundImage,
-			Signature:       user.Signature,
-			TotalFavorited:  user.TotalFavorited,
-			WorkCount:       user.WorkCount,
-			FavoriteCount:   user.FavoriteCount,
-		},
+		User: user,
 	})
 }
