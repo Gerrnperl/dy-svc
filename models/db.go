@@ -59,6 +59,7 @@ func Init() error {
 
 	db.AutoMigrate(&User{})
 	db.AutoMigrate(&Video{})
+	db.AutoMigrate(&Favorite{})
 
 	return nil
 }

@@ -25,4 +25,8 @@ func initRouter(r *gin.Engine) {
 	apiRouter.POST("/publish/action/", middleware.AuthBody(), controller.UploadVideo)
 
 	apiRouter.GET("/publish/list/", middleware.AuthQuery(), controller.GetPublishList)
+
+	apiRouter.POST("/favorite/action/", middleware.AuthQuery(), controller.FavoriteAction)
+
+	apiRouter.GET("/favorite/list/", middleware.AuthQuery(), controller.FavoriteList)
 }
