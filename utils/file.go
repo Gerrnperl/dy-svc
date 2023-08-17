@@ -31,6 +31,10 @@ func SaveFile(data *multipart.FileHeader, folder string, filename string) error 
 	return nil
 }
 
+func RemoveFile(path string) error {
+	return os.Remove(path)
+}
+
 func GetExt(filename string) string {
 	ext := filepath.Ext(filename)
 	if ext == "" {

@@ -1,12 +1,15 @@
 package service
 
 import (
+	"encoding/json"
 	"main/config"
 	"main/models"
 	"main/utils"
 	"mime/multipart"
 	"strconv"
 	"time"
+
+	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
 type ErrVideoFormat struct {
@@ -23,9 +26,7 @@ func (e ErrVideoFormat) Error() string {
 // It takes a user ID, a multipart file header,
 // and a title as input, and returns the filename of the uploaded video and an error (if any).
 func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filename string, err error) {
-	if err = CheckVideo(data); err != nil {
-		return "", err
-	}
+
 	// Generate a unique filename for the video
 	// The filename is the hash of the original filename, the title, the current timestamp and a random salt.
 	now := time.Now().UnixMilli()
@@ -36,20 +37,101 @@ func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filena
 		return "", err
 	}
 
+	checkCh := make(chan bool)
+	extCh := make(chan string)
+	errCh := make(chan error, 2)
+
+	// var wg sync.WaitGroup
+	// wg.Add(2)
+
+	go func() {
+		err := CheckVideo(filename + "." + ext)
+		if err != nil {
+			errCh <- err
+		} else {
+			checkCh <- true
+		}
+		// wg.Done()
+	}()
+
+	go func() {
+		coverFilename, err := extractCover(filename + "." + ext)
+		if err != nil {
+			errCh <- err
+		} else {
+			extCh <- coverFilename
+		}
+		// wg.Done()
+	}()
+
+	var coverFilename string
+
+	select {
+	case err := <-errCh:
+		utils.RemoveFile("public/video/" + filename + "." + ext)
+		return "", err
+	case <-checkCh:
+		coverFilename = <-extCh
+	case coverFilename = <-extCh:
+		<-checkCh
+	}
+
+	// wg.Wait()
+
 	models.VideoDao().Add(&models.Video{
 		AuthorId: userId,
 		PlayUrl:  "/static/video/" + filename + "." + ext,
-		CoverUrl: "",
+		CoverUrl: "/static/cover/" + coverFilename,
 		Title:    title,
 	})
 
 	return filename, nil
 }
 
-// CheckVideo checks if the given video file is valid.
+// extractCover
 //
-// TODO: implement this function, we may need to use ffmpeg to check the video format.
-func CheckVideo(file *multipart.FileHeader) (err error) {
+// extracts the first frame of a video file and saves it as a JPEG image file.
+// The function takes the filename of the video file (with extension) as input and returns
+// the filename of the generated cover image file (with extension) on success. If an error
+// occurs during the extraction process, the function returns an error.
+func extractCover(filename string) (cover string, err error) {
+	src := "public/video/" + filename
+	now := time.Now().UnixMilli()
+	targetFilename, _ := utils.HashWithSalt(filename + strconv.FormatInt(now, 10))
+	target := "public/cover/" + targetFilename + ".jpg"
+	if err = ffmpeg.Input(src).Output(target, ffmpeg.KwArgs{"ss": "00:00:00.000", "vframes": 1}).Run(); err != nil {
+		return "", err
+	}
+	return targetFilename + ".jpg", nil
+}
+
+type probeInfo struct {
+	Format struct {
+		FormatName string `json:"format_name"`
+	} `json:"format"`
+	Streams []struct {
+		CodecName string `json:"codec_name"`
+	} `json:"streams"`
+}
+
+// CheckVideo checks if the given video file is valid.
+func CheckVideo(filename string) (err error) {
+	src := "public/video/" + filename
+	infoJson, err := ffmpeg.Probe(src)
+	if err != nil {
+		return err
+	}
+	// infoJson to struct, use json.Unmarshal
+	var info probeInfo
+
+	err = json.Unmarshal([]byte(infoJson), &info)
+
+	if err != nil {
+		return err
+	}
+	if len(info.Streams) == 0 {
+		return ErrVideoFormat{info.Format.FormatName}
+	}
 	return nil
 }
 
@@ -57,7 +139,14 @@ func CheckVideo(file *multipart.FileHeader) (err error) {
 //
 // returns a list of videos published by the given user ID
 func GetPublishList(userId int64) (videos []*models.Video, err error) {
-	return models.VideoDao().GetByAuthorId(userId)
+	videos, err = models.VideoDao().GetByAuthorId(userId)
+	if err != nil {
+		return nil, err
+	}
+	if err = AdjustVideosUrl(videos); err != nil {
+		return nil, err
+	}
+	return videos, nil
 }
 
 // GetVideosBefore
@@ -71,13 +160,20 @@ func GetVideosBefore(time int64) (videos []*models.Video, oldest int64, err erro
 	if err != nil {
 		return nil, 0, err
 	}
+	if err = AdjustVideosUrl(videos); err != nil {
+		return nil, 0, err
+	}
+	return videos, oldest, nil
+}
+
+func AdjustVideosUrl(videos []*models.Video) (err error) {
 	ip, err := utils.GetLocalIP()
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
 	for _, video := range videos {
 		video.PlayUrl = "http://" + ip + ":" + config.Port + video.PlayUrl
 		video.CoverUrl = "http://" + ip + ":" + config.Port + video.CoverUrl
 	}
-	return videos, oldest, nil
+	return nil
 }
