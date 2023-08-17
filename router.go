@@ -29,4 +29,8 @@ func initRouter(r *gin.Engine) {
 	apiRouter.POST("/favorite/action/", middleware.AuthQuery(), controller.FavoriteAction)
 
 	apiRouter.GET("/favorite/list/", middleware.AuthQuery(), controller.FavoriteList)
+
+	apiRouter.POST("/comment/action/", middleware.AuthQuery(), controller.CommentAction)
+
+	apiRouter.GET("/comment/list", middleware.AuthQuery(), controller.CommentList)
 }
