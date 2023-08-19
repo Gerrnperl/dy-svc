@@ -37,6 +37,10 @@ func VideoDao() *VideoDaoStruct {
 	return _videoDaoInstance
 }
 
+// Add 添加视频
+//
+// create a new video record in the database.
+// and also adds the work count of the author.
 func (*VideoDaoStruct) Add(video *Video) (*Video, error) {
 	if video.PlayUrl == "" {
 		return nil, ErrMissingRequiredField{"play_url"}
@@ -57,6 +61,7 @@ func (*VideoDaoStruct) Add(video *Video) (*Video, error) {
 	return video, nil
 }
 
+// GetByAuthorId 根据作者id获取视频
 func (*VideoDaoStruct) GetByAuthorId(authorId int64) ([]*Video, error) {
 	var videos []*Video
 	if err := DB().Where("author_id = ?", authorId).Find(&videos).Error; err != nil {
@@ -65,6 +70,11 @@ func (*VideoDaoStruct) GetByAuthorId(authorId int64) ([]*Video, error) {
 	return videos, nil
 }
 
+// GetBefore 根据时间戳获取视频
+//
+// It returns a list of videos created before the given timestamp.
+// The number of videos returned is limited by the limit parameter.
+// The oldest timestamp of the returned videos is returned as the second return value.
 func (*VideoDaoStruct) GetBefore(timeStamp int64, limit int) (videoList []*Video, oldest int64, err error) {
 	var videos []*Video
 	// convert time to String

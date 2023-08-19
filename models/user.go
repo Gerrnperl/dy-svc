@@ -65,16 +65,9 @@ func UserDao() *UserDaoStruct {
 // Add 添加用户
 //
 // Add adds a new user to the database. It takes a pointer to a User struct as input and returns a pointer to the newly created User struct and an error (if any).
-//
 // If the required fields (name and password) are missing, it returns an ErrMissingRequiredField error.
-//
 // If the user with the same name already exists in the database, it returns an ErrAlreadyExists error.
-//
 // It hashes the password and generates a salt before storing it in the database.
-//
-//	@param user *User
-//	@return *User
-//	@return error
 func (dao *UserDaoStruct) Add(user *User) (*User, error) {
 	// 判断必填字段是否为空
 	if user.Name == "" {
@@ -107,13 +100,9 @@ func (dao *UserDaoStruct) Add(user *User) (*User, error) {
 
 // GetByName 根据用户名获取用户
 //
-// GetByName retrieves a user from the database by name. It takes a string representing the user's name as input and returns a pointer to the User struct and an error (if any).
-//
+// GetByName retrieves a user from the database by name.
+// It takes a string representing the user's name as input and returns a pointer to the User struct and an error (if any).
 // If the user with the specified name is not found in the database, it returns an ErrNotFound error.
-//
-//	@param name
-//	@return *User
-//	@return error
 func (dao *UserDaoStruct) GetByName(name string) (*User, error) {
 	var user User
 	result := DB().Where("name = ?", name).First(&user)
@@ -130,10 +119,6 @@ func (dao *UserDaoStruct) GetByName(name string) (*User, error) {
 }
 
 // GetById 根据用户ID获取用户
-//
-//	@param id
-//	@return *User
-//	@return error
 func (dao *UserDaoStruct) GetById(id int64) (*User, error) {
 	var user User
 	result := DB().Where("id = ?", id).First(&user)

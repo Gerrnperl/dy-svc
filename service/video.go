@@ -2,10 +2,12 @@ package service
 
 import (
 	"encoding/json"
+	"errors"
 	"main/config"
 	"main/models"
 	"main/utils"
 	"mime/multipart"
+	"os"
 	"strconv"
 	"time"
 
@@ -20,13 +22,13 @@ func (e ErrVideoFormat) Error() string {
 	return "invalid video format: " + e.format
 }
 
-// UploadVideo
+// UploadVideo 上传视频
 //
 // uploads a video file to the server and adds a new video record to the database.
+// It will check the video format and extract the cover image from the video file.
 // It takes a user ID, a multipart file header,
 // and a title as input, and returns the filename of the uploaded video and an error (if any).
 func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filename string, err error) {
-
 	// Generate a unique filename for the video
 	// The filename is the hash of the original filename, the title, the current timestamp and a random salt.
 	now := time.Now().UnixMilli()
@@ -41,9 +43,6 @@ func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filena
 	extCh := make(chan string)
 	errCh := make(chan error, 2)
 
-	// var wg sync.WaitGroup
-	// wg.Add(2)
-
 	go func() {
 		err := CheckVideo(filename + "." + ext)
 		if err != nil {
@@ -51,7 +50,6 @@ func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filena
 		} else {
 			checkCh <- true
 		}
-		// wg.Done()
 	}()
 
 	go func() {
@@ -61,7 +59,6 @@ func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filena
 		} else {
 			extCh <- coverFilename
 		}
-		// wg.Done()
 	}()
 
 	var coverFilename string
@@ -76,8 +73,6 @@ func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filena
 		<-checkCh
 	}
 
-	// wg.Wait()
-
 	models.VideoDao().Add(&models.Video{
 		AuthorId: userId,
 		PlayUrl:  "/static/video/" + filename + "." + ext,
@@ -88,13 +83,15 @@ func UploadVideo(userId int64, data *multipart.FileHeader, title string) (filena
 	return filename, nil
 }
 
-// extractCover
+// extractCover 从视频文件中提取封面
 //
 // extracts the first frame of a video file and saves it as a JPEG image file.
 // The function takes the filename of the video file (with extension) as input and returns
 // the filename of the generated cover image file (with extension) on success. If an error
 // occurs during the extraction process, the function returns an error.
 func extractCover(filename string) (cover string, err error) {
+	// check if "public/cover" exists, if not, create it
+	os.MkdirAll("public/cover", os.ModePerm)
 	src := "public/video/" + filename
 	now := time.Now().UnixMilli()
 	targetFilename, _ := utils.HashWithSalt(filename + strconv.FormatInt(now, 10))
@@ -114,12 +111,15 @@ type probeInfo struct {
 	} `json:"streams"`
 }
 
-// CheckVideo checks if the given video file is valid.
+// CheckVideo 检查视频文件
+//
+// checks if the given video file is valid.
+// It uses ffmpeg to probe the video file.
 func CheckVideo(filename string) (err error) {
 	src := "public/video/" + filename
 	infoJson, err := ffmpeg.Probe(src)
 	if err != nil {
-		return err
+		return errors.New("invalid video file")
 	}
 	// infoJson to struct, use json.Unmarshal
 	var info probeInfo
@@ -127,7 +127,7 @@ func CheckVideo(filename string) (err error) {
 	err = json.Unmarshal([]byte(infoJson), &info)
 
 	if err != nil {
-		return err
+		return errors.New("invalid video file")
 	}
 	if len(info.Streams) == 0 {
 		return ErrVideoFormat{info.Format.FormatName}
@@ -135,7 +135,7 @@ func CheckVideo(filename string) (err error) {
 	return nil
 }
 
-// GetPublishList
+// GetPublishList 获取视频列表
 //
 // returns a list of videos published by the given user ID
 func GetPublishList(userId int64) (videos []*models.Video, err error) {
@@ -149,7 +149,7 @@ func GetPublishList(userId int64) (videos []*models.Video, err error) {
 	return videos, nil
 }
 
-// GetVideosBefore
+// GetVideosBefore 获取视频列表
 //
 // returns a list of videos created before the given time,
 // along with the timestamp of the oldest video and an error (if any).
@@ -166,6 +166,11 @@ func GetVideosBefore(time int64) (videos []*models.Video, oldest int64, err erro
 	return videos, oldest, nil
 }
 
+// AdjustVideosUrl 调整视频相关URL
+//
+// takes a slice of *models.Video and modifies the PlayUrl and CoverUrl fields of
+// each video to include the local IP address and the configured port number.
+// this function is designed to fix the problem that the demo app does not support relative URLs.
 func AdjustVideosUrl(videos []*models.Video) (err error) {
 	ip, err := utils.GetLocalIP()
 	if err != nil {

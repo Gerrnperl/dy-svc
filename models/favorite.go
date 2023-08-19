@@ -35,7 +35,7 @@ func FavoriteDao() *FavoriteDaoStruct {
 	return _favoriteDaoInstance
 }
 
-// Action
+// Action 执行收藏或取消收藏
 //
 // adds or removes a favorite.
 // It will also update the FavoriteCount of the video,
@@ -91,6 +91,8 @@ func (d *FavoriteDaoStruct) Action(f *Favorite, do bool) error {
 	return nil
 }
 
+// DeleteByVideoId 删除视频的所有收藏
+//
 // (soft) delete ALL favorites of a video.
 // designed to be called when a video is deleted.
 func (d *FavoriteDaoStruct) DeleteByVideoId(videoId int64) error {
@@ -99,18 +101,23 @@ func (d *FavoriteDaoStruct) DeleteByVideoId(videoId int64) error {
 	return err
 }
 
+// GetByUserId 获取用户的所有收藏
 func (d *FavoriteDaoStruct) GetByUserId(userId int64) ([]*Favorite, error) {
 	var favorites []*Favorite
 	err := DB().Where("user_id = ?", userId).Find(&favorites).Error
 	return favorites, err
 }
 
+// GetByVideoId 获取视频的所有收藏
 func (d *FavoriteDaoStruct) GetByVideoId(videoId int64) ([]*Favorite, error) {
 	var favorites []*Favorite
 	err := DB().Where("video_id = ?", videoId).Find(&favorites).Error
 	return favorites, err
 }
 
+// GetUsersByVideoId 获取收藏视频的所有用户
+//
+// get all users who have favorited a specific video.
 func (d *FavoriteDaoStruct) GetUsersByVideoId(videoId int64) ([]*User, error) {
 	var users []*User
 	// Query the database to find all users who have favorited a specific video.
@@ -125,6 +132,9 @@ func (d *FavoriteDaoStruct) GetUsersByVideoId(videoId int64) ([]*User, error) {
 	return users, err
 }
 
+// GetVideosByUserId 获取用户收藏的所有视频
+//
+// get all videos that a user has favorited.
 func (d *FavoriteDaoStruct) GetVideosByUserId(userId int64) ([]*Video, error) {
 	var videos []*Video
 	err := DB().
@@ -137,6 +147,7 @@ func (d *FavoriteDaoStruct) GetVideosByUserId(userId int64) ([]*Video, error) {
 	return videos, err
 }
 
+// GetUsersCountByVideoId 获取收藏视频的用户数
 func (d *FavoriteDaoStruct) GetUsersCountByVideoId(videoId int64) (int64, error) {
 	var count int64
 	err := DB().
@@ -147,6 +158,7 @@ func (d *FavoriteDaoStruct) GetUsersCountByVideoId(videoId int64) (int64, error)
 	return count, err
 }
 
+// GetVideosCountByUserId 获取用户收藏的视频数
 func (d *FavoriteDaoStruct) GetVideosCountByUserId(userId int64) (int64, error) {
 	var count int64
 	err := DB().

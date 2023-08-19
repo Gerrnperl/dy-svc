@@ -9,6 +9,9 @@ type CommentInfo struct {
 	CreateDate string             `json:"create_date,omitempty"` // "mm-dd"
 }
 
+// AddComment 添加评论
+//
+// creates a new comment record in the database and returns the comment info.
 func AddComment(userId, videoId int64, commentText string) (comment *CommentInfo, err error) {
 	rawComment := models.Comment{
 		UserId:  userId,
@@ -32,10 +35,12 @@ func AddComment(userId, videoId int64, commentText string) (comment *CommentInfo
 	return comment, nil
 }
 
+// DeleteComment 删除评论
 func DeleteComment(userId, commentId int64) error {
 	return models.CommentDao().DeleteComment(userId, commentId)
 }
 
+// GetCommentsByVideoId 根据视频id获取评论
 func GetCommentsByVideoId(videoId int64) ([]*CommentInfo, error) {
 	rawComments, err := models.CommentDao().GetCommentsByVideoId(videoId)
 	if err != nil {

@@ -17,11 +17,6 @@ type FeedResponse struct {
 
 // GET /douyin/Feed/ - 视频流接口
 // 不限制登录状态，返回按投稿时间倒序的视频列表，视频数由服务端控制，单次最多30个。
-//
-//	message douyin_feed_request {
-//		optional int64 latest_time = 1; // 可选参数，限制返回视频的最新投稿时间戳，精确到秒，不填表示当前时间
-//		optional string token = 2； // 可选参数，登录用户设置
-//	}
 func Feed(c *gin.Context) {
 	// Parse request body
 	var req struct {
