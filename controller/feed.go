@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"main/models"
 	"main/service"
 	"net/http"
 	"time"
@@ -11,8 +10,8 @@ import (
 
 type FeedResponse struct {
 	Response
-	VideoList []models.Video `json:"video_list"`
-	NextTime  int64          `json:"next_time"`
+	VideoList []service.VideoInfo `json:"video_list"`
+	NextTime  int64               `json:"next_time"`
 }
 
 // GET /douyin/Feed/ - 视频流接口
@@ -45,7 +44,7 @@ func Feed(c *gin.Context) {
 		return
 	}
 
-	videoList := make([]models.Video, len(videos))
+	videoList := make([]service.VideoInfo, len(videos))
 	for i, v := range videos {
 		videoList[i] = *v
 	}

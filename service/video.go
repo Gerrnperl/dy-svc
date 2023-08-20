@@ -22,6 +22,17 @@ func (e ErrVideoFormat) Error() string {
 	return "invalid video format: " + e.format
 }
 
+type VideoInfo struct {
+	Id            int64              `json:"id,omitempty" gorm:"primarykey"`
+	Author        models.UserProfile `json:"author,omitempty"`
+	PlayUrl       string             `json:"play_url,omitempty"`
+	CoverUrl      string             `json:"cover_url,omitempty"`
+	FavoriteCount int64              `json:"favorite_count,omitempty"`
+	CommentCount  int64              `json:"comment_count,omitempty"`
+	Title         string             `json:"title,omitempty"`
+	CreatedAt     time.Time          `json:"created_at,omitempty"`
+}
+
 // UploadVideo 上传视频
 //
 // uploads a video file to the server and adds a new video record to the database.
@@ -155,13 +166,27 @@ func GetPublishList(userId int64) (videos []*models.Video, err error) {
 // along with the timestamp of the oldest video and an error (if any).
 // The returned videos have their PlayUrl and CoverUrl fields updated with
 // the current IP address and port number.
-func GetVideosBefore(time int64) (videos []*models.Video, oldest int64, err error) {
-	videos, oldest, err = models.VideoDao().GetBefore(time, 30)
+func GetVideosBefore(time int64) (videos []*VideoInfo, oldest int64, err error) {
+	rawVideos, oldest, err := models.VideoDao().GetBefore(time, 30)
 	if err != nil {
 		return nil, 0, err
 	}
-	if err = AdjustVideosUrl(videos); err != nil {
+	if err = AdjustVideosUrl(rawVideos); err != nil {
 		return nil, 0, err
+	}
+	for _, rawVideo := range rawVideos {
+		userProfile, err := UserProfile(rawVideo.AuthorId)
+		if err != nil {
+			return nil, 0, err
+		}
+		videos = append(videos, &VideoInfo{
+			Id:        rawVideo.Id,
+			Author:    *userProfile,
+			PlayUrl:   rawVideo.PlayUrl,
+			CoverUrl:  rawVideo.CoverUrl,
+			Title:     rawVideo.Title,
+			CreatedAt: rawVideo.CreatedAt,
+		})
 	}
 	return videos, oldest, nil
 }
