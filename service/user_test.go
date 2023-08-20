@@ -119,7 +119,7 @@ func TestUserProfile_Success(t *testing.T) {
 		WorkCount:       40,
 		FavoriteCount:   50,
 	}
-	expectedUserProfile := &models.UserProfile{
+	expectedUserProfile := &UserProfile{
 		Id:              userId,
 		Name:            rawUser.Name,
 		FollowCount:     rawUser.FollowCount,
@@ -137,7 +137,7 @@ func TestUserProfile_Success(t *testing.T) {
 	defer patch.Reset()
 
 	// Act
-	userProfile, err := UserProfile(userId)
+	userProfile, err := GetUserProfile(userId, 0)
 
 	// Assert
 	if err != nil {
@@ -158,7 +158,7 @@ func TestUserProfile_UserDaoError(t *testing.T) {
 	defer patch.Reset()
 
 	// Act
-	userProfile, err := UserProfile(userId)
+	userProfile, err := GetUserProfile(userId, 0)
 
 	// Assert
 	if userProfile != nil {

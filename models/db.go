@@ -61,6 +61,7 @@ func Init() error {
 	db.AutoMigrate(&Video{})
 	db.AutoMigrate(&Favorite{})
 	db.AutoMigrate(&Comment{})
+	db.AutoMigrate(&Follow{})
 
 	return nil
 }

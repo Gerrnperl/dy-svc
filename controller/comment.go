@@ -95,6 +95,10 @@ func CommentAction(c *gin.Context) {
 // GET /douyin/comment/list/ - 视频评论列表
 // 查看视频的所有评论，按发布时间倒序。
 func CommentList(c *gin.Context) {
+	requestId, err := GetUserID(c, "")
+	if err != nil {
+		requestId = 0
+	}
 	videoIdStr := c.Query("video_id")
 	videoId, err := strconv.ParseInt(videoIdStr, 10, 64)
 	if videoIdStr == "" || err != nil {
@@ -105,7 +109,7 @@ func CommentList(c *gin.Context) {
 		return
 	}
 
-	comments, err := service.GetCommentsByVideoId(videoId)
+	comments, err := service.GetCommentsByVideoId(videoId, requestId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{
 			StatusCode: 1,

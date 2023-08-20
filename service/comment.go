@@ -3,10 +3,10 @@ package service
 import "main/models"
 
 type CommentInfo struct {
-	Id         int64              `json:"id,omitempty"`
-	User       models.UserProfile `json:"user,omitempty"`
-	Content    string             `json:"content,omitempty"`
-	CreateDate string             `json:"create_date,omitempty"` // "mm-dd"
+	Id         int64       `json:"id,omitempty"`
+	User       UserProfile `json:"user,omitempty"`
+	Content    string      `json:"content,omitempty"`
+	CreateDate string      `json:"create_date,omitempty"` // "mm-dd"
 }
 
 // AddComment 添加评论
@@ -18,7 +18,7 @@ func AddComment(userId, videoId int64, commentText string) (comment *CommentInfo
 		VideoId: videoId,
 		Content: commentText,
 	}
-	user, err := UserProfile(userId)
+	user, err := GetUserProfile(userId, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -41,14 +41,14 @@ func DeleteComment(userId, commentId int64) error {
 }
 
 // GetCommentsByVideoId 根据视频id获取评论
-func GetCommentsByVideoId(videoId int64) ([]*CommentInfo, error) {
+func GetCommentsByVideoId(videoId int64, requestId int64) ([]*CommentInfo, error) {
 	rawComments, err := models.CommentDao().GetCommentsByVideoId(videoId)
 	if err != nil {
 		return nil, err
 	}
 	comments := make([]*CommentInfo, len(rawComments))
 	for i, rawComment := range rawComments {
-		user, err := UserProfile(rawComment.UserId)
+		user, err := GetUserProfile(rawComment.UserId, requestId)
 		if err != nil {
 			return nil, err
 		}

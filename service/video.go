@@ -23,14 +23,14 @@ func (e ErrVideoFormat) Error() string {
 }
 
 type VideoInfo struct {
-	Id            int64              `json:"id,omitempty" gorm:"primarykey"`
-	Author        models.UserProfile `json:"author,omitempty"`
-	PlayUrl       string             `json:"play_url,omitempty"`
-	CoverUrl      string             `json:"cover_url,omitempty"`
-	FavoriteCount int64              `json:"favorite_count,omitempty"`
-	CommentCount  int64              `json:"comment_count,omitempty"`
-	Title         string             `json:"title,omitempty"`
-	CreatedAt     time.Time          `json:"created_at,omitempty"`
+	Id            int64       `json:"id,omitempty" gorm:"primarykey"`
+	Author        UserProfile `json:"author,omitempty"`
+	PlayUrl       string      `json:"play_url,omitempty"`
+	CoverUrl      string      `json:"cover_url,omitempty"`
+	FavoriteCount int64       `json:"favorite_count,omitempty"`
+	CommentCount  int64       `json:"comment_count,omitempty"`
+	Title         string      `json:"title,omitempty"`
+	CreatedAt     time.Time   `json:"created_at,omitempty"`
 }
 
 // UploadVideo 上传视频
@@ -166,7 +166,7 @@ func GetPublishList(userId int64) (videos []*models.Video, err error) {
 // along with the timestamp of the oldest video and an error (if any).
 // The returned videos have their PlayUrl and CoverUrl fields updated with
 // the current IP address and port number.
-func GetVideosBefore(time int64) (videos []*VideoInfo, oldest int64, err error) {
+func GetVideosBefore(time int64, requestId int64) (videos []*VideoInfo, oldest int64, err error) {
 	rawVideos, oldest, err := models.VideoDao().GetBefore(time, 30)
 	if err != nil {
 		return nil, 0, err
@@ -175,7 +175,7 @@ func GetVideosBefore(time int64) (videos []*VideoInfo, oldest int64, err error) 
 		return nil, 0, err
 	}
 	for _, rawVideo := range rawVideos {
-		userProfile, err := UserProfile(rawVideo.AuthorId)
+		userProfile, err := GetUserProfile(rawVideo.AuthorId, requestId)
 		if err != nil {
 			return nil, 0, err
 		}

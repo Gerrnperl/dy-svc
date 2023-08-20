@@ -5,6 +5,20 @@ import (
 	"main/models"
 )
 
+type UserProfile struct {
+	Id              int64  `json:"id,omitempty"`
+	Name            string `json:"name,omitempty"`
+	FollowCount     int64  `json:"follow_count,omitempty"`
+	FollowerCount   int64  `json:"follower_count,omitempty"`
+	IsFollow        bool   `json:"is_follow,omitempty"`
+	Avatar          string `json:"avatar,omitempty"`
+	BackgroundImage string `json:"background_image,omitempty"`
+	TotalFavorited  int64  `json:"total_favorited,omitempty"`
+	WorkCount       int64  `json:"work_count,omitempty"`
+	FavoriteCount   int64  `json:"favorite_count,omitempty"`
+	Signature       string `json:"signature,omitempty"`
+}
+
 // UserRegister
 //
 // registers a new user with the given username and password,
@@ -49,21 +63,29 @@ func UserLogin(username, password string) (id int64, token string, err error) {
 	return id, token, nil
 }
 
-// UserProfile
+// GetUserProfile
 //
 // returns the user profile for the user with the given ID.
 // It removes some sensitive information from the user profile, like the password.
-func UserProfile(userId int64) (user *models.UserProfile, err error) {
+func GetUserProfile(userId int64, requestId int64) (user *UserProfile, err error) {
 	rawUser, err := models.UserDao().GetById(userId)
 	if err != nil {
 		return nil, err
 	}
+	isFollow := false
+	if requestId != 0 {
+		isFollow, err = models.FollowDao().IsFollowing(requestId, userId)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return &models.UserProfile{
+	return &UserProfile{
 		Id:              rawUser.Id,
 		Name:            rawUser.Name,
 		FollowCount:     rawUser.FollowCount,
 		FollowerCount:   rawUser.FollowerCount,
+		IsFollow:        isFollow,
 		Avatar:          rawUser.Avatar,
 		BackgroundImage: rawUser.BackgroundImage,
 		Signature:       rawUser.Signature,

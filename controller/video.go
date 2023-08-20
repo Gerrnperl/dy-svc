@@ -65,7 +65,7 @@ func UploadVideo(c *gin.Context) {
 // GET /douyin/publish/list/ - 发布列表
 // 登录用户的视频发布列表，直接列出用户所有投稿过的视频。
 func GetPublishList(c *gin.Context) {
-	userId, err := GetUserID(c, c.Query("userId"))
+	userId, err := GetUserID(c, c.Query("user_id"))
 
 	if err != nil {
 		c.JSON(200, UserProfilesResponse{

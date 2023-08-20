@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"main/models"
 	"main/service"
 	"net/http"
 
@@ -17,7 +16,7 @@ type UserCredentialsResponse struct {
 
 type UserProfilesResponse struct {
 	Response
-	User *models.UserProfile `json:"user,omitempty"`
+	User *service.UserProfile `json:"user,omitempty"`
 }
 
 // POST /douyin/user/register/ - 用户注册接口
@@ -80,8 +79,7 @@ func UserLogin(c *gin.Context) {
 // 获取登录用户的 id、昵称，如果实现社交部分的功能，还会返回关注数和粉丝数。
 func UserProfile(c *gin.Context) {
 
-	userId, err := GetUserID(c, c.Query("userId"))
-
+	userId, err := GetUserID(c, c.Query("user_id"))
 	if err != nil {
 		c.JSON(200, UserProfilesResponse{
 			Response: Response{
@@ -91,8 +89,13 @@ func UserProfile(c *gin.Context) {
 		})
 		return
 	}
+	requestUserId, err := GetUserID(c, "")
 
-	user, err := service.UserProfile(userId)
+	if err != nil {
+		requestUserId = 0
+	}
+
+	user, err := service.GetUserProfile(userId, requestUserId)
 
 	if err != nil {
 		c.JSON(200, UserProfilesResponse{

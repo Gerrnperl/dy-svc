@@ -15,11 +15,6 @@ import (
 func auth(c *gin.Context, token string) (int64, error) {
 	id, err := service.AuthenticateToken(token)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, controller.Response{
-			StatusCode: 1,
-			StatusMsg:  err.Error(),
-		})
-		c.Abort()
 		return 0, err
 	}
 	if id > 0 {
@@ -32,13 +27,12 @@ func auth(c *gin.Context, token string) (int64, error) {
 //
 // a middleware that authenticates the user token from the query string.
 // It calls the auth function to authenticate the token and set the user ID in the context.
-// If authentication is successful, it calls the next middleware in the chain.
 func AuthQuery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Query("token")
 		_, err := auth(c, token)
 		if err != nil {
-			return
+			c.Set("auth_err", err)
 		}
 		c.Next()
 	}
@@ -49,7 +43,7 @@ func AuthHeader() gin.HandlerFunc {
 		token := c.GetHeader("token")
 		_, err := auth(c, token)
 		if err != nil {
-			return
+			c.Set("auth_err", err)
 		}
 		c.Next()
 	}
@@ -60,6 +54,24 @@ func AuthBody() gin.HandlerFunc {
 		token := c.PostForm("token")
 		_, err := auth(c, token)
 		if err != nil {
+			c.Set("auth_err", err)
+		}
+		c.Next()
+	}
+}
+
+// PassAuth
+//
+// aborts the request if the user is not authenticated.
+func PassAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		err, _ := c.Get("auth_err")
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, controller.Response{
+				StatusCode: 1,
+				StatusMsg:  err.(error).Error(),
+			})
+			c.Abort()
 			return
 		}
 		c.Next()
