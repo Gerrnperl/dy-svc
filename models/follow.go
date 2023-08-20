@@ -36,12 +36,11 @@ func (dao *FollowDaoStruct) FollowAction(follow *Follow, do bool) error {
 	if follow.FollowerId == follow.FollowedId {
 		return errors.New("can't follow yourself")
 	}
+	var count int64
+	if err := DB().Model(&Follow{}).Where("follower_id = ? AND followed_id = ?", follow.FollowerId, follow.FollowedId).Count(&count).Error; err != nil {
+		return err
+	}
 	if do {
-		// Check if the follow already exists
-		var count int64
-		if err := DB().Model(&Follow{}).Where("follower_id = ? AND followed_id = ?", follow.FollowerId, follow.FollowedId).Count(&count).Error; err != nil {
-			return err
-		}
 		if count > 0 {
 			return errors.New("follow relation already exists")
 		}
@@ -49,6 +48,9 @@ func (dao *FollowDaoStruct) FollowAction(follow *Follow, do bool) error {
 			return err
 		}
 	} else {
+		if count == 0 {
+			return errors.New("follow relation not exists")
+		}
 		if err := DB().Unscoped().Where("follower_id = ? AND followed_id = ?", follow.FollowerId, follow.FollowedId).Delete(&Follow{}).Error; err != nil {
 			return err
 		}
