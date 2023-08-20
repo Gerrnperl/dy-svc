@@ -35,4 +35,8 @@ func initRouter(r *gin.Engine) {
 	apiRouter.GET("/comment/list", middleware.AuthQuery(), middleware.PassAuth(), controller.CommentList)
 
 	apiRouter.POST("/relation/action/", middleware.AuthQuery(), middleware.PassAuth(), controller.FollowAction)
+
+	apiRouter.GET("/relation/follow/list/", middleware.AuthQuery(), middleware.PassAuth(), controller.FollowList)
+
+	apiRouter.GET("/relation/follower/list/", middleware.AuthQuery(), middleware.PassAuth(), controller.FollowerList)
 }

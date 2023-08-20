@@ -33,6 +33,9 @@ func FollowDao() *FollowDaoStruct {
 }
 
 func (dao *FollowDaoStruct) FollowAction(follow *Follow, do bool) error {
+	if follow.FollowerId == follow.FollowedId {
+		return errors.New("can't follow yourself")
+	}
 	if do {
 		// Check if the follow already exists
 		var count int64
@@ -76,4 +79,20 @@ func (dao *FollowDaoStruct) IsFollowing(followerId int64, followedId int64) (boo
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (dao *FollowDaoStruct) GetByFollowerId(followerId int64) ([]*Follow, error) {
+	var follows []*Follow
+	if err := DB().Where("follower_id = ?", followerId).Find(&follows).Error; err != nil {
+		return nil, err
+	}
+	return follows, nil
+}
+
+func (dao *FollowDaoStruct) GetByFollowedId(followedId int64) ([]*Follow, error) {
+	var follows []*Follow
+	if err := DB().Where("followed_id = ?", followedId).Find(&follows).Error; err != nil {
+		return nil, err
+	}
+	return follows, nil
 }

@@ -73,7 +73,7 @@ func GetUserProfile(userId int64, requestId int64) (user *UserProfile, err error
 		return nil, err
 	}
 	isFollow := false
-	if requestId != 0 {
+	if userId != requestId && requestId != 0 {
 		isFollow, err = models.FollowDao().IsFollowing(requestId, userId)
 		if err != nil {
 			return nil, err
