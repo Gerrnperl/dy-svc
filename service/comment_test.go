@@ -28,7 +28,7 @@ func TestAddCommentWithMock(t *testing.T) {
 		},
 	}
 
-	patch1 := gomonkey.ApplyFunc(GetUserProfile, func(userId int64) (*UserProfile, error) {
+	patch1 := gomonkey.ApplyFunc(GetUserProfile, func(userId int64, requestId int64) (*UserProfile, error) {
 		return mockUser, nil
 	})
 	defer patch1.Reset()
@@ -51,7 +51,7 @@ func TestAddCommentWithMock(t *testing.T) {
 }
 
 func TestAddCommentUserProfileErrorWithMock(t *testing.T) {
-	patch := gomonkey.ApplyFunc(GetUserProfile, func(userId int64) (*UserProfile, error) {
+	patch := gomonkey.ApplyFunc(GetUserProfile, func(userId int64, requestId int64) (*UserProfile, error) {
 		return nil, errors.New("error getting user profile")
 	})
 	defer patch.Reset()
@@ -68,7 +68,7 @@ func TestAddCommentCreateCommentErrorWithMock(t *testing.T) {
 		Name: "testuser",
 	}
 
-	patch1 := gomonkey.ApplyFunc(GetUserProfile, func(userId int64) (*UserProfile, error) {
+	patch1 := gomonkey.ApplyFunc(GetUserProfile, func(userId int64, requestId int64) (*UserProfile, error) {
 		return mockUser, nil
 	})
 	defer patch1.Reset()
